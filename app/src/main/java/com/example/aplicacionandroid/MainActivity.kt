@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessAlarm
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
@@ -68,9 +69,16 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            IconButton(onClick = {navController.navigate("pantalla3")}) {
+                            IconButton(onClick = {navController.navigate("")}) {
                                 Icon(
                                     imageVector = Icons.Default.AccountBalance,
+                                    contentDescription = "Androide p 3",
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                            IconButton(onClick = {navController.navigate("Perfil")}) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBox,
                                     contentDescription = "Androide p 3",
                                     modifier = Modifier.size(32.dp)
                                 )
@@ -86,7 +94,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable    //Scaffold          //rememberNavController
+@Composable
 fun AppNavegar(modifier: Modifier, navController : NavHostController){
 
     NavHost(
