@@ -6,31 +6,35 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessAlarm
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
-
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -41,109 +45,166 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AplicacionAndroidTheme() {
+            AplicacionAndroidTheme {
+                val rootNavController = rememberNavController()
 
-                val navController = rememberNavController()
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    bottomBar = { BottomAppBar(){
-                        Row(
-                            Modifier.fillMaxSize().
-                            padding(start = 35.dp).
-                            padding(end = 35.dp).
-                            padding(top = 35.dp),
-                            Arrangement.SpaceBetween) {
-                            IconButton(onClick = {navController.navigate("pantalla1")}) {
-                                Icon(
-                                    imageVector = Icons.Default.AccessAlarm,
-                                    contentDescription = "Pantalla 1",
-                                    modifier = Modifier.size(32.dp)
-                                )
+                // NavHost principal que gestiona Login y Pantalla Principal
+                NavHost(
+                    navController = rootNavController,
+                    startDestination = "login"
+                ) {
+                    // 1. Pantalla Login
+                    composable("login") {
+                        LoginScreen(onLoginSuccess = {
+                            // Al iniciar sesión, viajamos a "main" y quitamos "login" del historial
+                            rootNavController.navigate("main") {
+                                popUpTo("login") { inclusive = true }
                             }
+                        })
+                    }
 
-                            IconButton(onClick = {navController.navigate("pantalla2")}) {
-                                Icon(
-                                    imageVector = Icons.Default.Android,
-                                    contentDescription = "Androide p 2",
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-
-                            IconButton(onClick = {navController.navigate("")}) {
-                                Icon(
-                                    imageVector = Icons.Default.AccountBalance,
-                                    contentDescription = "Androide p 3",
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            IconButton(onClick = {navController.navigate("Perfil")}) {
-                                Icon(
-                                    imageVector = Icons.Default.AccountBox,
-                                    contentDescription = "Androide p 3",
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        }
-                    } }
-                ) { innerPadding ->
-                    AppNavegar(Modifier.padding(innerPadding),navController)
-
+                    // 2. Pantalla Principal (Contiene la barra navegadora)
+                    composable("main") {
+                        MainScreenWithBottomNav()
+                    }
                 }
             }
         }
     }
 }
 
+// ---------------------------------------------------------------------------
+// 1. Pantalla de Inicio de Sesión
+// ---------------------------------------------------------------------------
 @Composable
-fun AppNavegar(modifier: Modifier, navController : NavHostController){
+fun LoginScreen(onLoginSuccess: () -> Unit) {
+    var usuario by remember { mutableStateOf("") }
+    var contrasena by remember { mutableStateOf("") }
 
-    NavHost(
-        navController = navController,
-        startDestination = "pantalla1"
-    ) {
-        composable("pantalla1") {
-            Pantalla1()//fun composable
-        }
-        composable("pantalla2") {
-            Pantalla2()
-        }
-
-        composable("pantalla3") {
-            Pantalla3()
-        }
-    }
-}
-
-@Composable
-fun Pantalla1(){
     Column(
-        Modifier.fillMaxSize(),
-        Arrangement.Center,
-        Alignment.CenterHorizontally
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("hola, soy bob")
-    }
+        Text(
+            text = "Iniciar Sesión",
+            style = MaterialTheme.typography.headlineMedium
+        )
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedTextField(
+            value = usuario,
+            onValueChange = { usuario = it },
+            label = { Text("Usuario / Correo") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = contrasena,
+            onValueChange = { contrasena = it },
+            label = { Text("Contraseña") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = {
+                if (usuario.isNotBlank() && contrasena.isNotBlank()) {
+                    onLoginSuccess() // Pasa a la pantalla principal
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Text("Iniciar Sesión")
+        }
+    }
 }
+
+// ---------------------------------------------------------------------------
+// 2. Estructura de Datos para los elementos del menú usando IMÁGENES (res/drawable)
+// ---------------------------------------------------------------------------
+data class NavigationItemConFoto(
+    val title: String,
+    val imageResId: Int, // ID de la foto en drawable (ej: R.drawable.bob)
+    val route: String
+)
+
 @Composable
-fun Pantalla2(){
-    Column(
-        Modifier.fillMaxSize(),
-        Arrangement.Center,
-        Alignment.CenterHorizontally
-    ) {
-        Text("adios bob")
+fun MainScreenWithBottomNav() {
+    val navController = rememberNavController()
+
+    // Sustituye R.drawable.ic_launcher_foreground por las fotos que tengas en tu res/drawable
+    // (Por ejemplo: R.drawable.bob, R.drawable.patricio, etc.)
+    val navItems = listOf(
+        NavigationItemConFoto("Pantalla 1", R.drawable.ic_launcher_foreground, "pantalla1"),
+        NavigationItemConFoto("Pantalla 2", R.drawable.ic_launcher_foreground, "pantalla2"),
+        NavigationItemConFoto("Pantalla 3", R.drawable.ic_launcher_foreground, "pantalla3"),
+        NavigationItemConFoto("Pantalla 4", R.drawable.ic_launcher_foreground, "pantalla4")
+    )
+
+    var selectedIndex by remember { mutableIntStateOf(0) }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                navItems.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        selected = selectedIndex == index,
+                        onClick = {
+                            selectedIndex = index
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        icon = {
+                            // Aquí usamos la imagen de res/drawable
+                            Image(
+                                painter = painterResource(id = item.imageResId),
+                                contentDescription = item.title,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        },
+                        label = { Text(item.title) }
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "pantalla1",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable("pantalla1") { PantallaContenido("Vista 1") }
+            composable("pantalla2") { PantallaContenido("Vista 2") }
+            composable("pantalla3") { PantallaContenido("Vista 3") }
+            composable("pantalla4") { PantallaContenido("Vista 4") }
+        }
     }
 }
 
 @Composable
-fun Pantalla3(){
-    Column(
-        Modifier.fillMaxSize(),
-        Arrangement.Center,
-        Alignment.CenterHorizontally
+fun PantallaContenido(titulo: String) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Text("perro")
+        Text(text = titulo, style = MaterialTheme.typography.titleLarge)
     }
 }
-
