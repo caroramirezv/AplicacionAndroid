@@ -50,7 +50,7 @@ fun AppNavHost(navController: NavHostController, padding: PaddingValues) {
                 onAccesoEstudiante = { ir(RUTA_ESTUDIANTE) }
             )
         }
-        composable(RUTA_INICIO) { Inicio(onIr = ir) }
+        composable(RUTA_INICIO) {Inicio(onIr = ir) }
         composable(RUTA_INSTRUMENTOS) { Instrumentos() }
         composable(RUTA_NUEVA) { NuevaAplicacion() }
         composable(RUTA_HISTORIAL) { Historial() }
