@@ -31,6 +31,7 @@ const val RUTA_INSTRUMENTOS = "instrumentos"
 const val RUTA_NUEVA = "nueva"
 const val RUTA_HISTORIAL = "historial"
 const val RUTA_ESTUDIANTE = "estudiante"
+const val RUTA_INICIO_ESTUDIANTE = "inicio_estudiante"
 const val RUTA_AJUSTES = "ajustes"
 
 private class Pestana(val ruta: String, val titulo: String, val icono: ImageVector)
@@ -47,10 +48,11 @@ private val pestanas = listOf(
 fun AppScaffold(navController: NavHostController, content: @Composable (PaddingValues) -> Unit) {
     val actual = navController.currentBackStackEntryAsState().value?.destination?.route
     val pestana = pestanas.firstOrNull { it.ruta == actual }
-    val enSecundaria = actual == RUTA_ESTUDIANTE || actual == RUTA_AJUSTES
+    val enSecundaria = actual == RUTA_ESTUDIANTE || actual == RUTA_AJUSTES || actual == RUTA_INICIO_ESTUDIANTE
     val titulo = when {
         pestana != null -> pestana.titulo
         actual == RUTA_ESTUDIANTE -> "Acceso estudiante"
+        actual == RUTA_INICIO_ESTUDIANTE -> "Inicio estudiante"
         else -> "Ajustes"
     }
 

@@ -20,6 +20,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,9 +33,14 @@ import androidx.compose.ui.unit.dp
 import com.example.aplicacionandroid.ui.componentes.IconoCircular
 
 @Composable
-fun AccesoEstudiante() {
+fun AccesoEstudiante(
+    onIngresar: (String) -> Unit
+) {
     val context = LocalContext.current
     val forma = RoundedCornerShape(14.dp)
+
+    var codigo by remember { mutableStateOf("") }
+    var cargando by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -65,21 +74,22 @@ fun AccesoEstudiante() {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    enabled = false,
+                    value = codigo,
+                    onValueChange = { codigo = it },
+                    enabled = !cargando,
                     label = { Text("Código temporal") },
                     shape = forma,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
+
                 Button(
                     onClick = {
-                        Toast.makeText(
-                            context,
-                            "Esta opción estará disponible próximamente",
-                            Toast.LENGTH_SHORT
-                        ).show()
+
+                        onIngresar(codigo)
                     },
+                  
+                    enabled = !cargando && codigo.isNotBlank(),
                     shape = forma,
                     modifier = Modifier
                         .fillMaxWidth()
