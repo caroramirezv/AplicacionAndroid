@@ -91,8 +91,8 @@ fun Inicio(onIr: (String) -> Unit) {
             icono = Icons.Default.History,
             titulo = "Historial",
             descripcion = "Aplicaciones registradas y su estado",
-            bgColor = Color(0xFFFFF3E0),   // Naranja/Ámbar pastel
-            titleColor = Color(0xFFE65100), // Naranja oscuro
+            bgColor = Color(0xFFFFF3E0),
+            titleColor = Color(0xFFE65100),
             onClick = { onIr(RUTA_HISTORIAL) }
         )
 
@@ -100,8 +100,8 @@ fun Inicio(onIr: (String) -> Unit) {
             icono = Icons.Default.Person,
             titulo = "Acceso estudiante",
             descripcion = "Ingreso con código temporal",
-            bgColor = Color(0xFFF3E5F5),   // Morado pastel
-            titleColor = Color(0xFF4A148C), // Morado oscuro
+            bgColor = Color(0xFFF3E5F5),
+            titleColor = Color(0xFF4A148C),
             onClick = { onIr(RUTA_ESTUDIANTE) }
         )
 

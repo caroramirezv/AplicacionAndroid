@@ -15,6 +15,7 @@ import com.example.aplicacionandroid.ui.componentes.RUTA_AJUSTES
 import com.example.aplicacionandroid.ui.componentes.RUTA_ESTUDIANTE
 import com.example.aplicacionandroid.ui.componentes.RUTA_HISTORIAL
 import com.example.aplicacionandroid.ui.componentes.RUTA_INICIO
+import com.example.aplicacionandroid.ui.componentes.RUTA_INICIO_ESTUDIANTE
 import com.example.aplicacionandroid.ui.componentes.RUTA_INSTRUMENTOS
 import com.example.aplicacionandroid.ui.componentes.RUTA_LOGIN
 import com.example.aplicacionandroid.ui.componentes.RUTA_NUEVA
@@ -22,6 +23,7 @@ import com.example.aplicacionandroid.ui.pantallas.AccesoEstudiante
 import com.example.aplicacionandroid.ui.pantallas.Ajustes
 import com.example.aplicacionandroid.ui.pantallas.Historial
 import com.example.aplicacionandroid.ui.pantallas.Inicio
+import com.example.aplicacionandroid.ui.pantallas.InicioEstudiante
 import com.example.aplicacionandroid.ui.pantallas.Instrumentos
 import com.example.aplicacionandroid.ui.pantallas.Login
 import com.example.aplicacionandroid.ui.pantallas.NuevaAplicacion
@@ -32,6 +34,7 @@ fun AppNavHost(navController: NavHostController, padding: PaddingValues) {
     val ir: (String) -> Unit = { navController.navigate(it) { launchSingleTop = true } }
 
     NavHost(navController, startDestination = RUTA_LOGIN, modifier = Modifier.padding(padding)) {
+
         composable(RUTA_LOGIN) {
             val loginVm: LoginViewModel = viewModel()
             val estado by loginVm.estado.collectAsState()
@@ -50,11 +53,25 @@ fun AppNavHost(navController: NavHostController, padding: PaddingValues) {
                 onAccesoEstudiante = { ir(RUTA_ESTUDIANTE) }
             )
         }
-        composable(RUTA_INICIO) {Inicio(onIr = ir) }
+
+      
+        composable(RUTA_ESTUDIANTE) {
+            AccesoEstudiante(
+                onIngresar = { _ ->
+                    navController.navigate(RUTA_INICIO_ESTUDIANTE) {
+                        popUpTo(RUTA_LOGIN) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(RUTA_INICIO_ESTUDIANTE) {
+            InicioEstudiante()
+        }
+
+        composable(RUTA_INICIO) { Inicio(onIr = ir) }
         composable(RUTA_INSTRUMENTOS) { Instrumentos() }
         composable(RUTA_NUEVA) { NuevaAplicacion() }
         composable(RUTA_HISTORIAL) { Historial() }
-        composable(RUTA_ESTUDIANTE) { AccesoEstudiante() }
         composable(RUTA_AJUSTES) {
             Ajustes(
                 onCerrarSesion = {
