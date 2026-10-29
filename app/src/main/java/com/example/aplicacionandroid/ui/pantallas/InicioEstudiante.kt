@@ -1,104 +1,115 @@
 package com.example.aplicacionandroid.ui.pantallas
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.aplicacionandroid.ui.componentes.IconoCircular
+import com.example.aplicacionandroid.ui.theme.AzulTitulo
+import com.example.aplicacionandroid.ui.theme.FondoPantalla
+import com.example.aplicacionandroid.ui.theme.FormaControl
+import com.example.aplicacionandroid.ui.theme.FormaTarjeta
+import com.example.aplicacionandroid.ui.theme.PaletaAzul
+import com.example.aplicacionandroid.ui.theme.TextoSecundario
+import com.example.aplicacionandroid.viewModel.EstudianteViewModel
 
 @Composable
-fun InicioEstudiante (){
+fun InicioEstudiante(
+    vm: EstudianteViewModel,
+    onComenzar: () -> Unit,
+    onSalir: () -> Unit
+) {
+    val instrumento = vm.instrumento
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-
-            .background(Color(0xFFF4F6F9))
+            .background(FondoPantalla)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        if (instrumento == null) {
+            Text(
+                "La sesión terminó. Vuelve a ingresar tu código.",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = onSalir,
+                shape = FormaControl,
+                modifier = Modifier
+                    .widthIn(max = 480.dp)
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) { Text("Volver", fontWeight = FontWeight.SemiBold) }
+        } else {
+            IconoCircular(Icons.Default.Extension, 88.dp)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                instrumento.nombre,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = AzulTitulo,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(16.dp))
 
-        Text(
-            text = "Actividades disponibles",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF0D47A1),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp)
-        )
-
-
-        TarjetaInstrumento(
-            icono = Icons.Default.Extension,
-            titulo = "Reconocimiento de patrones",
-            bgColor = Color(0xFFE3F2FD),
-            titleColor = Color(0xFF0D47A1)
-        )
-
-
-        TarjetaInstrumento(
-            icono = Icons.Default.Visibility,
-            titulo = "Actividad Enfoque y Concentración",
-            bgColor = Color(0xFFE8F5E9),
-            titleColor = Color(0xFF1B5E20)
-        )
-    }
-}
-
-
-@Composable
-private fun TarjetaInstrumento(
-    icono: ImageVector,
-    titulo: String,
-    bgColor: Color,
-    titleColor: Color
-) {
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = bgColor
-        ),
-        elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 2.dp
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            IconoCircular(icono)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = titulo,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = titleColor
-                )
+            ElevatedCard(
+                modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+                shape = FormaTarjeta,
+                colors = CardDefaults.elevatedCardColors(containerColor = PaletaAzul.fondo)
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        instrumento.instrucciones,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextoSecundario
+                    )
+                    Text(
+                        "${instrumento.preguntas.size} preguntas · aprox. ${instrumento.minutosEstimados} minutos",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = AzulTitulo
+                    )
+                }
             }
+
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = onComenzar,
+                shape = FormaControl,
+                modifier = Modifier
+                    .widthIn(max = 480.dp)
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) { Text("Comenzar", fontWeight = FontWeight.SemiBold) }
+            TextButton(onClick = onSalir) { Text("Salir") }
         }
     }
 }

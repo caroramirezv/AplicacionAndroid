@@ -1,16 +1,13 @@
 package com.example.aplicacionandroid.data.local
 
 import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(
-    tableName = "usuarios",
-    indices = [Index(value = ["correo"], unique = true)]
-)
+@Entity(tableName = "users")
 data class UsuarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val nombre: String,
     val correo: String,
-    val clave: String
+    val contrasena: String,
+    val nombre: String,
+    val rol: String
 )

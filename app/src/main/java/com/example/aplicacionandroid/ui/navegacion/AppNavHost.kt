@@ -1,83 +1,137 @@
 package com.example.aplicacionandroid.ui.navegacion
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.aplicacionandroid.ui.componentes.RUTA_AJUSTES
-import com.example.aplicacionandroid.ui.componentes.RUTA_ESTUDIANTE
-import com.example.aplicacionandroid.ui.componentes.RUTA_HISTORIAL
-import com.example.aplicacionandroid.ui.componentes.RUTA_INICIO
-import com.example.aplicacionandroid.ui.componentes.RUTA_INICIO_ESTUDIANTE
-import com.example.aplicacionandroid.ui.componentes.RUTA_INSTRUMENTOS
-import com.example.aplicacionandroid.ui.componentes.RUTA_LOGIN
-import com.example.aplicacionandroid.ui.componentes.RUTA_NUEVA
+import androidx.navigation.navArgument
 import com.example.aplicacionandroid.ui.pantallas.AccesoEstudiante
 import com.example.aplicacionandroid.ui.pantallas.Ajustes
+import com.example.aplicacionandroid.ui.pantallas.CuestionarioEstudiante
+import com.example.aplicacionandroid.ui.pantallas.DetalleAplicacion
+import com.example.aplicacionandroid.ui.pantallas.FinEstudiante
 import com.example.aplicacionandroid.ui.pantallas.Historial
-import com.example.aplicacionandroid.ui.pantallas.Inicio
 import com.example.aplicacionandroid.ui.pantallas.InicioEstudiante
+import com.example.aplicacionandroid.ui.pantallas.Inicio
 import com.example.aplicacionandroid.ui.pantallas.Instrumentos
-import com.example.aplicacionandroid.ui.pantallas.Login
+import com.example.aplicacionandroid.ui.pantallas.LoginScreen
 import com.example.aplicacionandroid.ui.pantallas.NuevaAplicacion
+import com.example.aplicacionandroid.viewModel.ApplicationViewModel
+import com.example.aplicacionandroid.viewModel.EstudianteViewModel
 import com.example.aplicacionandroid.viewModel.LoginViewModel
 
 @Composable
-fun AppNavHost(navController: NavHostController, padding: PaddingValues) {
-    val ir: (String) -> Unit = { navController.navigate(it) { launchSingleTop = true } }
-
-    NavHost(navController, startDestination = RUTA_LOGIN, modifier = Modifier.padding(padding)) {
-
-        composable(RUTA_LOGIN) {
-            val loginVm: LoginViewModel = viewModel()
-            val estado by loginVm.estado.collectAsState()
-
-            LaunchedEffect(estado.psicologo) {
-                if (estado.psicologo != null) {
-                    navController.navigate(RUTA_INICIO) { popUpTo(RUTA_LOGIN) { inclusive = true } }
-                }
-            }
-
-            Login(
-                error = estado.error,
-                cargando = estado.cargando,
-                onIngresar = loginVm::ingresar,
-                onEditar = loginVm::limpiarError,
-                onAccesoEstudiante = { ir(RUTA_ESTUDIANTE) }
-            )
+fun AppNavHost(
+    navController: NavHostController,
+    padding: PaddingValues,
+    vm: ApplicationViewModel,
+    login: LoginViewModel,
+    estudiante: EstudianteViewModel
+) {
+    fun volverAlLogin() {
+        navController.navigate(Ruta.Login.ruta) {
+            popUpTo(navController.graph.id) { inclusive = true }
         }
+    }
 
-      
-        composable(RUTA_ESTUDIANTE) {
-            AccesoEstudiante(
-                onIngresar = { _ ->
-                    navController.navigate(RUTA_INICIO_ESTUDIANTE) {
-                        popUpTo(RUTA_LOGIN) { inclusive = true }
+    NavHost(
+        navController = navController,
+        startDestination = Ruta.Login.ruta,
+        modifier = Modifier.padding(padding),
+        enterTransition = { slideInHorizontally { it / 4 } + fadeIn() },
+        exitTransition = { slideOutHorizontally { -it / 4 } + fadeOut() },
+        popEnterTransition = { slideInHorizontally { -it / 4 } + fadeIn() },
+        popExitTransition = { slideOutHorizontally { it / 4 } + fadeOut() }
+    ) {
+        composable(Ruta.Login.ruta) {
+            LoginScreen(
+                viewModel = login,
+                onLoginSuccess = { psicologo ->
+                    vm.iniciarSesion(psicologo.nombre)
+                    navController.navigate(Ruta.Inicio.ruta) {
+                        popUpTo(Ruta.Login.ruta) { inclusive = true }
                     }
-                }
+                },
+                onAccesoEstudiante = { navController.navigate(Ruta.Estudiante.ruta) }
             )
-        }
-        composable(RUTA_INICIO_ESTUDIANTE) {
-            InicioEstudiante()
         }
 
-        composable(RUTA_INICIO) { Inicio(onIr = ir) }
-        composable(RUTA_INSTRUMENTOS) { Instrumentos() }
-        composable(RUTA_NUEVA) { NuevaAplicacion() }
-        composable(RUTA_HISTORIAL) { Historial() }
-        composable(RUTA_AJUSTES) {
-            Ajustes(
-                onCerrarSesion = {
-                    navController.navigate(RUTA_LOGIN) { popUpTo(RUTA_INICIO) { inclusive = true } }
+        composable(Ruta.Inicio.ruta) {
+            Inicio(onIr = { destino -> navController.navigate(destino) { launchSingleTop = true } })
+        }
+        composable(Ruta.Instrumentos.ruta) { Instrumentos(vm) }
+        composable(Ruta.Nueva.ruta) { NuevaAplicacion(vm) }
+        composable(Ruta.Historial.ruta) {
+            Historial()
+        }
+        composable(
+            route = Ruta.Detalle.ruta,
+            arguments = listOf(navArgument("id") { type = NavType.IntType })
+        ) { entrada ->
+            DetalleAplicacion(id = entrada.arguments?.getInt("id") ?: -1, vm = vm)
+        }
+        composable(Ruta.Ajustes.ruta) {
+            Ajustes(vm, onCerrarSesion = {
+                vm.cerrarSesion()
+                login.limpiar()
+                volverAlLogin()
+            })
+        }
+
+        composable(Ruta.Estudiante.ruta) {
+            AccesoEstudiante(
+                vm = estudiante,
+                onContinuar = {
+                    navController.navigate(Ruta.EstInstrucciones.ruta) {
+                        popUpTo(Ruta.Estudiante.ruta) { inclusive = true }
+                    }
+                },
+                onVolverLogin = {
+                    estudiante.reiniciar()
+                    volverAlLogin()
                 }
             )
+        }
+        composable(Ruta.EstInstrucciones.ruta) {
+            InicioEstudiante(
+                vm = estudiante,
+                onComenzar = {
+                    estudiante.comenzar()
+                    navController.navigate(Ruta.EstCuestionario.ruta)
+                },
+                onSalir = {
+                    estudiante.reiniciar()
+                    volverAlLogin()
+                }
+            )
+        }
+        composable(Ruta.EstCuestionario.ruta) {
+            CuestionarioEstudiante(
+                vm = estudiante,
+                onFinalizado = {
+                    navController.navigate(Ruta.EstFin.ruta) {
+                        popUpTo(Ruta.EstCuestionario.ruta) { inclusive = true }
+                    }
+                },
+                onSalir = {
+                    estudiante.reiniciar()
+                    volverAlLogin()
+                }
+            )
+        }
+        composable(Ruta.EstFin.ruta) {
+            FinEstudiante(onSalir = {
+                estudiante.reiniciar()
+                volverAlLogin()
+            })
         }
     }
 }

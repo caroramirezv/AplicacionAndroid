@@ -3,10 +3,6 @@ package com.example.aplicacionandroid.ui.componentes
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,59 +15,52 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.aplicacionandroid.ui.navegacion.Ruta
+import com.example.aplicacionandroid.ui.theme.AzulClaro
+import com.example.aplicacionandroid.ui.theme.AzulOscuro
+import com.example.aplicacionandroid.ui.theme.AzulTitulo
 
-const val RUTA_LOGIN = "login"
-const val RUTA_INICIO = "inicio"
-const val RUTA_INSTRUMENTOS = "instrumentos"
-const val RUTA_NUEVA = "nueva"
-const val RUTA_HISTORIAL = "historial"
-const val RUTA_ESTUDIANTE = "estudiante"
-const val RUTA_INICIO_ESTUDIANTE = "inicio_estudiante"
-const val RUTA_AJUSTES = "ajustes"
-
-private class Pestana(val ruta: String, val titulo: String, val icono: ImageVector)
-
-private val pestanas = listOf(
-    Pestana(RUTA_INICIO, "", Icons.Default.Home),
-    Pestana(RUTA_INSTRUMENTOS, "", Icons.AutoMirrored.Filled.List),
-    Pestana(RUTA_NUEVA, "", Icons.Default.AddCircle),
-    Pestana(RUTA_HISTORIAL, "", Icons.Default.History)
-)
+private fun tituloDe(ruta: String?): String = when (ruta) {
+    Ruta.Ajustes.ruta -> "Ajustes"
+    Ruta.Detalle.ruta -> "Detalle de aplicación"
+    Ruta.Estudiante.ruta -> "Acceso estudiante"
+    else -> ""
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppScaffold(navController: NavHostController, content: @Composable (PaddingValues) -> Unit) {
+fun AppScaffold(
+    navController: NavHostController,
+    onAtras: () -> Unit = { navController.popBackStack() },
+    content: @Composable (PaddingValues) -> Unit
+) {
     val actual = navController.currentBackStackEntryAsState().value?.destination?.route
-    val pestana = pestanas.firstOrNull { it.ruta == actual }
-    val enSecundaria = actual == RUTA_ESTUDIANTE || actual == RUTA_AJUSTES || actual == RUTA_INICIO_ESTUDIANTE
-    val titulo = when {
-        pestana != null -> pestana.titulo
-        actual == RUTA_ESTUDIANTE -> "Acceso estudiante"
-        actual == RUTA_INICIO_ESTUDIANTE -> "Inicio estudiante"
-        else -> "Ajustes"
-    }
+    val esPestana = Ruta.barra.any { it.ruta == actual }
+    val enSecundaria = actual == Ruta.Ajustes.ruta ||
+        actual == Ruta.Detalle.ruta ||
+        actual == Ruta.Estudiante.ruta
+    // La barra inferior solo existe en el perfil psicólogo
+    val mostrarBarra = esPestana || actual == Ruta.Ajustes.ruta || actual == Ruta.Detalle.ruta
 
     Scaffold(
         topBar = {
-            if (pestana != null || enSecundaria) {
+            if (esPestana || enSecundaria) {
                 CenterAlignedTopAppBar(
-                    title = { Text(titulo, fontWeight = FontWeight.SemiBold) },
+                    title = { Text(tituloDe(actual), fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
                         if (enSecundaria) {
-                            IconButton(onClick = { navController.popBackStack() }) {
+                            IconButton(onClick = onAtras) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                             }
                         }
                     },
                     actions = {
-                        if (pestana != null) {
+                        if (esPestana) {
                             IconButton(onClick = {
-                                navController.navigate(RUTA_AJUSTES) { launchSingleTop = true }
+                                navController.navigate(Ruta.Ajustes.ruta) { launchSingleTop = true }
                             }) {
                                 Icon(Icons.Default.Settings, contentDescription = "Ajustes")
                             }
@@ -81,32 +70,25 @@ fun AppScaffold(navController: NavHostController, content: @Composable (PaddingV
             }
         },
         bottomBar = {
-            if (pestana != null || actual == RUTA_AJUSTES) {
-                NavigationBar(
-                    containerColor = Color.White
-                ) {
-                    pestanas.forEach { item ->
+            if (mostrarBarra) {
+                NavigationBar(containerColor = Color.White) {
+                    Ruta.barra.forEach { item ->
                         NavigationBarItem(
-                            selected = actual == item.ruta,
+                            selected = actual == item.ruta ||
+                                (item == Ruta.Historial && actual == Ruta.Detalle.ruta),
                             onClick = {
                                 if (actual == item.ruta) return@NavigationBarItem
-
                                 navController.navigate(item.ruta) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
+                                    popUpTo(Ruta.Inicio.ruta) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(item.icono, item.titulo) },
-                            label = { Text(item.titulo) },
+                            icon = { item.icono?.let { Icon(it, item.titulo) } },
                             colors = NavigationBarItemDefaults.colors(
-                                unselectedIconColor = Color(0xFF0D47A1),
-                                unselectedTextColor = Color(0xFF0D47A1),
-                                selectedIconColor = Color(0xFF002171),
-                                selectedTextColor = Color(0xFF002171),
-                                indicatorColor = Color(0xFFBBDEFB)
+                                unselectedIconColor = AzulTitulo,
+                                selectedIconColor = AzulOscuro,
+                                indicatorColor = AzulClaro
                             )
                         )
                     }

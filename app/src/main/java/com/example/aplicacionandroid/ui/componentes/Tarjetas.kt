@@ -23,6 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import com.example.aplicacionandroid.ui.theme.AzulTitulo
 
 @Composable
 fun IconoCircular(icono: ImageVector, tamano: Dp = 48.dp) {
@@ -68,4 +71,18 @@ fun TarjetaProximamente(titulo: String) {
             }
         }
     }
+}
+
+@Composable
+fun TituloPantalla(texto: String, modifier: Modifier = Modifier) {
+    Text(
+        text = texto,
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.Bold,
+        color = AzulTitulo,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    )
 }

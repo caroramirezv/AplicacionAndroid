@@ -1,13 +1,12 @@
 package com.example.aplicacionandroid.ui.pantallas
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,21 +20,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.aplicacionandroid.model.EstadoAplicacion
+import com.example.aplicacionandroid.ui.componentes.EtiquetaEstado
 import com.example.aplicacionandroid.ui.componentes.IconoCircular
 
 data class RegistroHistorial(
     val id: String,
-    val nombreAlumno: String,
+    val estudiante: String,
     val curso: String,
     val fecha: String,
-    val instrumentoPsicologico: String
+    val instrumento: String,
+    val estado: EstadoAplicacion
 )
 
 @Composable
-fun Historial(
-    registros: List<RegistroHistorial> = obtenerRegistrosEjemplo()
-) {
+fun Historial(registros: List<RegistroHistorial> = registrosEjemplo()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,25 +49,19 @@ fun Historial(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         ) {
-            IconoCircular(
-                icono = Icons.Default.History,
-                tamano = 48.dp
-            )
+            IconoCircular(icono = Icons.Default.History, tamano = 48.dp)
             Text(
-                text = "Historial de Evaluaciones",
+                text = "Historial de aplicaciones",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
         }
 
         if (registros.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+            Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "No hay evaluaciones registradas aún",
+                    "No hay aplicaciones registradas aún",
+                    textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -76,60 +71,55 @@ fun Historial(
                 contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(registros, key = { it.id }) { registro ->
-                    TarjetaHistorial(registro = registro)
+                item {
+                    Text(
+                        "Ejemplos ilustrativos con datos ficticios.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
+                items(registros, key = { it.id }) { registro -> TarjetaHistorial(registro) }
             }
         }
     }
 }
 
 @Composable
-fun TarjetaHistorial(registro: RegistroHistorial) {
+private fun TarjetaHistorial(registro: RegistroHistorial) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    registro.estudiante,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                )
+                EtiquetaEstado(registro.estado)
+            }
             Text(
-                text = registro.nombreAlumno,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = "Curso: ${registro.curso}",
+                "Curso: ${registro.curso}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-
             Text(
-                text = "Instrumento: ${registro.instrumentoPsicologico}",
+                "Instrumento: ${registro.instrumento}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
             )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-
             Text(
-                text = "Fecha: ${registro.fecha}",
+                "Fecha: ${registro.fecha}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
@@ -137,29 +127,8 @@ fun TarjetaHistorial(registro: RegistroHistorial) {
     }
 }
 
-
-private fun obtenerRegistrosEjemplo(): List<RegistroHistorial> {
-    return listOf(
-        RegistroHistorial(
-            id = "1",
-            nombreAlumno = "Carlos Mendoza Reyes",
-            curso = "3º Medio A",
-            fecha = "24/10/2026",
-            instrumentoPsicologico = "Inventario de Ansiedad de Beck (BAI)"
-        ),
-        RegistroHistorial(
-            id = "2",
-            nombreAlumno = "María Fernández Silva",
-            curso = "1º Medio B",
-            fecha = "22/10/2026",
-            instrumentoPsicologico = "Escala de Autoestima de Rosenberg"
-        ),
-        RegistroHistorial(
-            id = "3",
-            nombreAlumno = "Juan Pablo Gómez",
-            curso = "4º Medio C",
-            fecha = "18/10/2026",
-            instrumentoPsicologico = "Cuestionario de Depresión de Beck (BDI-II)"
-        )
-    )
-}
+private fun registrosEjemplo(): List<RegistroHistorial> = listOf(
+    RegistroHistorial("1", "Estudiante EST-001", "5.º A", "24-10-2026", "Cuestionario de hábitos de estudio", EstadoAplicacion.REVISADA),
+    RegistroHistorial("2", "Estudiante EST-002", "6.º B", "22-10-2026", "Mini cuestionario de comprensión lectora (simulado)", EstadoAplicacion.FINALIZADA),
+    RegistroHistorial("3", "Estudiante EST-003", "7.º C", "18-10-2026", "Escala de clima escolar (simulada)", EstadoAplicacion.PENDIENTE)
+)

@@ -1,56 +1,47 @@
 package com.example.aplicacionandroid.viewModel
 
 import android.app.Application
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.aplicacionandroid.data.local.AppDatabase
 import com.example.aplicacionandroid.data.repository.UsuarioRepository
 import com.example.aplicacionandroid.model.PIE
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Todo lo que la pantalla de login necesita saber, en un solo objeto.
-data class LoginUiState(
-    val cargando: Boolean = false,
-    val error: String? = null,
-    val psicologo: PIE? = null      // distinto de null = sesión iniciada
-)
-
 class LoginViewModel(app: Application) : AndroidViewModel(app) {
-    private val repo = UsuarioRepository(AppDatabase.get(app).usuarioDao())
 
-    private val _estado = MutableStateFlow(LoginUiState())
-    val estado: StateFlow<LoginUiState> = _estado.asStateFlow()
+    private val repo = UsuarioRepository(AppDatabase.getDatabase(app).usuarioDao())
 
-    fun ingresar(correo: String, clave: String) {
-        if (_estado.value.cargando) return                    // evita doble toque
+    var correo by mutableStateOf("")
+    var contrasena by mutableStateOf("")
+    var errorMessage by mutableStateOf<String?>(null)
+    var cargando by mutableStateOf(false)
+        private set
 
-        if (correo.isBlank() || clave.isBlank()) {
-            _estado.update { it.copy(error = "Ingresa tu usuario y contraseña") }
+    fun onLoginClicked(onSuccess: (PIE) -> Unit) {
+        if (correo.isBlank() || contrasena.isBlank()) {
+            errorMessage = "Completa todos los campos"
             return
         }
-
         viewModelScope.launch {
-            _estado.update { it.copy(cargando = true, error = null) }
-            try {
-                val usuario = repo.iniciarSesion(correo, clave)
-                _estado.update {
-                    if (usuario != null) {
-                        it.copy(cargando = false, psicologo = PIE(usuario.correo, usuario.nombre))
-                    } else {
-                        it.copy(cargando = false, error = "Usuario o contraseña incorrectos")
-                    }
-                }
-            } catch (e: Exception) {
-                _estado.update { it.copy(cargando = false, error = "No se pudo acceder a la base de datos") }
+            cargando = true
+            val usuario = repo.iniciarSesion(correo, contrasena)
+            cargando = false
+            if (usuario != null && usuario.rol == UsuarioRepository.ROL_PSICOLOGO) {
+                limpiar()
+                onSuccess(PIE(usuario.nombre, usuario.correo))
+            } else {
+                errorMessage = "Credenciales incorrectas"
             }
         }
     }
 
-    fun limpiarError() {
-        _estado.update { it.copy(error = null) }
+    fun limpiar() {
+        correo = ""
+        contrasena = ""
+        errorMessage = null
     }
 }
