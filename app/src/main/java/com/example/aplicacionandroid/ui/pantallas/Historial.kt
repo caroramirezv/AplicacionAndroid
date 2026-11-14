@@ -20,13 +20,16 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,8 +43,13 @@ import androidx.compose.ui.window.Dialog
 import com.example.aplicacionandroid.model.EstadoAplicacion
 import com.example.aplicacionandroid.ui.componentes.EtiquetaEstado
 import com.example.aplicacionandroid.ui.componentes.IconoCircular
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.mutableStateListOf
+
+// --- MODELOS DE DATOS ---
+
+data class RespuestaVisualizacion(
+    val pregunta: String,
+    val respuesta: String
+)
 
 data class RegistroHistorial(
     val id: String,
@@ -50,12 +58,15 @@ data class RegistroHistorial(
     val fecha: String,
     val instrumento: String,
     val estado: EstadoAplicacion,
-    var comentario: String = ""
+    var comentario: String = "",
+    val respuestas: List<RespuestaVisualizacion> = emptyList()
 )
+
+// --- PANTALLA PRINCIPAL HISTORIAL ---
 
 @Composable
 fun Historial(registrosIniciales: List<RegistroHistorial> = registrosEjemplo()) {
-
+    // Convertimos la lista en un estado observable
     val registros = remember {
         mutableStateListOf<RegistroHistorial>().apply { addAll(registrosIniciales) }
     }
@@ -113,24 +124,24 @@ fun Historial(registrosIniciales: List<RegistroHistorial> = registrosEjemplo()) 
         }
     }
 
-
+    // --- MANEJO DEL DIÁLOGO PRINCIPAL ---
     registroSeleccionado?.let { registro ->
         DialogoAnotacion(
             registro = registro,
             onDismiss = { registroSeleccionado = null },
             onGuardar = { comentarioActualizado ->
-
                 val index = registros.indexOfFirst { it.id == registro.id }
                 if (index != -1) {
                     registros[index] = registro.copy(comentario = comentarioActualizado)
                 }
-
                 Toast.makeText(contexto, "Comentario guardado exitosamente", Toast.LENGTH_SHORT).show()
                 registroSeleccionado = null
             }
         )
     }
 }
+
+// --- COMPONENTES VISUALES ---
 
 @Composable
 private fun TarjetaHistorial(registro: RegistroHistorial, onClick: () -> Unit) {
@@ -196,7 +207,6 @@ private fun TarjetaHistorial(registro: RegistroHistorial, onClick: () -> Unit) {
     }
 }
 
-
 @Composable
 fun DialogoAnotacion(
     registro: RegistroHistorial,
@@ -204,6 +214,7 @@ fun DialogoAnotacion(
     onGuardar: (String) -> Unit
 ) {
     var textoComentario by remember { mutableStateOf(registro.comentario) }
+    var mostrarRespuestas by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
@@ -216,7 +227,6 @@ fun DialogoAnotacion(
                     .padding(24.dp)
                     .fillMaxWidth()
             ) {
-
                 Text(
                     text = "Anotación",
                     style = MaterialTheme.typography.titleLarge,
@@ -225,7 +235,6 @@ fun DialogoAnotacion(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-
 
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -244,6 +253,15 @@ fun DialogoAnotacion(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                OutlinedButton(
+                    onClick = { mostrarRespuestas = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Revisar respuestas del alumno")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = textoComentario,
@@ -275,7 +293,79 @@ fun DialogoAnotacion(
             }
         }
     }
+
+    if (mostrarRespuestas) {
+        DialogoRespuestas(
+            respuestas = registro.respuestas,
+            onDismiss = { mostrarRespuestas = false }
+        )
+    }
 }
+
+@Composable
+fun DialogoRespuestas(
+    respuestas: List<RespuestaVisualizacion>,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = { onDismiss() }) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Respuestas del Alumno",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (respuestas.isEmpty()) {
+                    Text("No hay respuestas registradas.", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(respuestas) { item ->
+                            Column {
+                                Text(
+                                    text = item.pregunta,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = item.respuesta,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { onDismiss() }) {
+                        Text("Cerrar")
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun FilaDetalle(etiqueta: String, valor: String) {
     Row(
@@ -296,8 +386,17 @@ private fun FilaDetalle(etiqueta: String, valor: String) {
     }
 }
 
-private fun registrosEjemplo(): List<RegistroHistorial> = listOf(
-    RegistroHistorial("1", "Estudiante EST-001", "5.º A", "24-10-2026", "Cuestionario de hábitos de estudio", EstadoAplicacion.REVISADA),
-    RegistroHistorial("2", "Estudiante EST-002", "6.º B", "22-10-2026", "Mini cuestionario de comprensión lectora (simulado)", EstadoAplicacion.FINALIZADA),
-    RegistroHistorial("3", "Estudiante EST-003", "7.º C", "18-10-2026", "Escala de clima escolar (simulada)", EstadoAplicacion.PENDIENTE)
-)
+
+private fun registrosEjemplo(): List<RegistroHistorial> {
+    val respuestasMock = listOf(
+        RespuestaVisualizacion("¿Con qué frecuencia estudias?", "Siempre"),
+        RespuestaVisualizacion("¿Tienes un lugar tranquilo para estudiar?", "A veces"),
+        RespuestaVisualizacion("¿Haces resúmenes de lo que lees?", "Nunca")
+    )
+
+    return listOf(
+        RegistroHistorial("1", "Estudiante EST-001", "5.º A", "24-10-2026", "Cuestionario de hábitos de estudio", EstadoAplicacion.REVISADA, respuestas = respuestasMock),
+        RegistroHistorial("2", "Estudiante EST-002", "6.º B", "22-10-2026", "Mini cuestionario de comprensión lectora (simulado)", EstadoAplicacion.FINALIZADA, respuestas = respuestasMock),
+        RegistroHistorial("3", "Estudiante EST-003", "7.º C", "18-10-2026", "Escala de clima escolar (simulada)", EstadoAplicacion.PENDIENTE, respuestas = respuestasMock)
+    )
+}
