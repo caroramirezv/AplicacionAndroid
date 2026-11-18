@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -85,6 +87,7 @@ fun AccesoEstudiante(
                     label = { Text("Código temporal") },
                     textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 28.sp, textAlign = TextAlign.Center),
                     singleLine = true,
+                    enabled = !vm.cargando,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                     isError = vm.error != null,
                     supportingText = { vm.error?.let { Text(it) } },
@@ -94,11 +97,22 @@ fun AccesoEstudiante(
 
                 Button(
                     onClick = { vm.ingresar(onContinuar) },
+                    enabled = !vm.cargando,
                     shape = FormaControl,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
-                ) { Text("Ingresar", fontWeight = FontWeight.SemiBold) }
+                ) {
+                    if (vm.cargando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Ingresar", fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
 

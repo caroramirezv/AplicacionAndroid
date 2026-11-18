@@ -70,7 +70,7 @@ fun AppNavHost(
         composable(Ruta.Instrumentos.ruta) { Instrumentos(vm) }
         composable(Ruta.Nueva.ruta) { NuevaAplicacion(vm) }
         composable(Ruta.Historial.ruta) {
-            Historial()
+            Historial(vm)
         }
         composable(
             route = Ruta.Detalle.ruta,

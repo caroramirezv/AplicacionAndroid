@@ -1,19 +1,18 @@
 package com.example.aplicacionandroid.viewModel
 
-import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.aplicacionandroid.data.local.AppDatabase
 import com.example.aplicacionandroid.data.repository.UsuarioRepository
+import com.example.aplicacionandroid.data.repository.mensajeDeError
 import com.example.aplicacionandroid.model.PIE
 import kotlinx.coroutines.launch
 
-class LoginViewModel(app: Application) : AndroidViewModel(app) {
+class LoginViewModel : ViewModel() {
 
-    private val repo = UsuarioRepository(AppDatabase.getDatabase(app).usuarioDao())
+    private val repo = UsuarioRepository()
 
     var correo by mutableStateOf("")
     var contrasena by mutableStateOf("")
@@ -22,20 +21,25 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     fun onLoginClicked(onSuccess: (PIE) -> Unit) {
+        if (cargando) return
         if (correo.isBlank() || contrasena.isBlank()) {
             errorMessage = "Completa todos los campos"
             return
         }
         viewModelScope.launch {
             cargando = true
-            val usuario = repo.iniciarSesion(correo, contrasena)
+            val resultado = repo.iniciarSesion(correo, contrasena)
             cargando = false
-            if (usuario != null && usuario.rol == UsuarioRepository.ROL_PSICOLOGO) {
-                limpiar()
-                onSuccess(PIE(usuario.nombre, usuario.correo))
-            } else {
-                errorMessage = "Credenciales incorrectas"
-            }
+            resultado
+                .onSuccess { psicologo ->
+                    if (psicologo != null) {
+                        limpiar()
+                        onSuccess(psicologo)
+                    } else {
+                        errorMessage = "Credenciales incorrectas"
+                    }
+                }
+                .onFailure { errorMessage = mensajeDeError(it) }
         }
     }
 

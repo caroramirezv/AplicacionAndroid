@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,7 +45,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.aplicacionandroid.data.CatalogoInstrumentos
 import com.example.aplicacionandroid.ui.componentes.IconoCircular
 import com.example.aplicacionandroid.ui.componentes.TituloPantalla
 import com.example.aplicacionandroid.ui.componentes.copiarCodigo
@@ -66,12 +67,14 @@ fun NuevaAplicacion(vm: ApplicationViewModel) {
     }
     val contexto = LocalContext.current
     val aplicaciones by vm.aplicaciones.collectAsState()
+    val instrumentos by vm.instrumentos.collectAsState()
 
     var idEstudiante by rememberSaveable { mutableStateOf("") }
     var curso by rememberSaveable { mutableStateOf("") }
     var instrumentoId by rememberSaveable { mutableStateOf<String?>(null) }
     var creadaId by rememberSaveable { mutableStateOf<Int?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    var enviando by remember { mutableStateOf(false) }
 
     val creada = aplicaciones.firstOrNull { it.id == creadaId }
 
@@ -85,7 +88,7 @@ fun NuevaAplicacion(vm: ApplicationViewModel) {
         TituloPantalla(if (creada != null) "Aplicación creada" else "Crear aplicación")
 
         if (creada != null) {
-            val nombreInstrumento = CatalogoInstrumentos.buscar(creada.instrumentoId)?.nombre ?: creada.instrumentoId
+            val nombreInstrumento = instrumentos.firstOrNull { it.id == creada.instrumentoId }?.nombre ?: creada.instrumentoId
             ElevatedCard(
                 Modifier.fillMaxWidth(),
                 shape = FormaTarjeta,
@@ -196,7 +199,7 @@ fun NuevaAplicacion(vm: ApplicationViewModel) {
                     }
 
                     Text("Instrumento", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    vm.instrumentos.forEach { inst ->
+                    instrumentos.forEach { inst ->
                         val habilitado = inst.asignable
                         val seleccionado = instrumentoId == inst.id
                         Card(
@@ -243,21 +246,35 @@ fun NuevaAplicacion(vm: ApplicationViewModel) {
                                 curso.isBlank() -> error = "Ingresa el curso ficticio"
                                 instrumentoId == null -> error = "Selecciona un instrumento"
                                 else -> {
-                                    val nueva = vm.crearAplicacion(idEstudiante, curso, instrumentoId!!)
-                                    if (nueva == null) {
-                                        error = "No se pudo crear la aplicación con ese instrumento"
-                                    } else {
-                                        error = null
-                                        creadaId = nueva.id
+                                    enviando = true
+                                    error = null
+                                    vm.crearAplicacion(idEstudiante, curso, instrumentoId!!) { nueva, mensaje ->
+                                        enviando = false
+                                        if (nueva == null) {
+                                            error = mensaje ?: "No se pudo crear la aplicación con ese instrumento"
+                                        } else {
+                                            creadaId = nueva.id
+                                        }
                                     }
                                 }
                             }
                         },
+                        enabled = !enviando,
                         shape = FormaControl,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                    ) { Text("Crear aplicación", fontWeight = FontWeight.SemiBold) }
+                    ) {
+                        if (enviando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text("Crear aplicación", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
         }

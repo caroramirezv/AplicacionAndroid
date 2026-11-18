@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,8 +29,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,9 +42,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.aplicacionandroid.model.Aplicacion
 import com.example.aplicacionandroid.model.EstadoAplicacion
+import com.example.aplicacionandroid.model.Instrumento
 import com.example.aplicacionandroid.ui.componentes.EtiquetaEstado
 import com.example.aplicacionandroid.ui.componentes.IconoCircular
+import com.example.aplicacionandroid.ui.componentes.formatearFecha
+import com.example.aplicacionandroid.viewModel.ApplicationViewModel
 
 // --- MODELOS DE DATOS ---
 
@@ -65,13 +71,22 @@ data class RegistroHistorial(
 // --- PANTALLA PRINCIPAL HISTORIAL ---
 
 @Composable
-fun Historial(registrosIniciales: List<RegistroHistorial> = registrosEjemplo()) {
-    // Convertimos la lista en un estado observable
-    val registros = remember {
-        mutableStateListOf<RegistroHistorial>().apply { addAll(registrosIniciales) }
-    }
-    var registroSeleccionado by remember { mutableStateOf<RegistroHistorial?>(null) }
+fun Historial(vm: ApplicationViewModel) {
+    val aplicaciones by vm.aplicaciones.collectAsState()
+    val instrumentos by vm.instrumentos.collectAsState()
+    var seleccionadoId by remember { mutableStateOf<String?>(null) }
     val contexto = LocalContext.current
+
+    LaunchedEffect(Unit) { vm.recargarAplicaciones() }
+    LaunchedEffect(vm.error) {
+        vm.error?.let {
+            Toast.makeText(contexto, it, Toast.LENGTH_LONG).show()
+            vm.limpiarError()
+        }
+    }
+
+    val registros = aplicaciones.map { it.aRegistro(instrumentos) }
+    val registroSeleccionado = registros.firstOrNull { it.id == seleccionadoId }
 
     Column(
         modifier = Modifier
@@ -95,29 +110,26 @@ fun Historial(registrosIniciales: List<RegistroHistorial> = registrosEjemplo()) 
 
         if (registros.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    "No hay aplicaciones registradas aún",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (vm.cargando) {
+                    CircularProgressIndicator()
+                } else {
+                    Text(
+                        "No hay aplicaciones registradas aún",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
-                    Text(
-                        "Ejemplos ilustrativos con datos ficticios.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 items(registros, key = { it.id }) { registro ->
                     TarjetaHistorial(
                         registro = registro,
-                        onClick = { registroSeleccionado = registro }
+                        onClick = { seleccionadoId = registro.id }
                     )
                 }
             }
@@ -128,17 +140,38 @@ fun Historial(registrosIniciales: List<RegistroHistorial> = registrosEjemplo()) 
     registroSeleccionado?.let { registro ->
         DialogoAnotacion(
             registro = registro,
-            onDismiss = { registroSeleccionado = null },
+            onDismiss = { seleccionadoId = null },
             onGuardar = { comentarioActualizado ->
-                val index = registros.indexOfFirst { it.id == registro.id }
-                if (index != -1) {
-                    registros[index] = registro.copy(comentario = comentarioActualizado)
+                vm.guardarObservacion(registro.id.toInt(), comentarioActualizado) { guardado ->
+                    if (guardado) {
+                        Toast.makeText(contexto, "Comentario guardado exitosamente", Toast.LENGTH_SHORT).show()
+                    }
                 }
-                Toast.makeText(contexto, "Comentario guardado exitosamente", Toast.LENGTH_SHORT).show()
-                registroSeleccionado = null
+                seleccionadoId = null
             }
         )
     }
+}
+
+private fun Aplicacion.aRegistro(instrumentos: List<Instrumento>): RegistroHistorial {
+    val instrumento = instrumentos.firstOrNull { it.id == instrumentoId }
+    return RegistroHistorial(
+        id = id.toString(),
+        estudiante = "Estudiante ${estudiante.idEstudiante}",
+        curso = estudiante.curso,
+        fecha = formatearFecha(fechaCreacion),
+        instrumento = instrumento?.nombre ?: instrumentoId,
+        estado = estado,
+        comentario = observacion,
+        respuestas = instrumento?.preguntas.orEmpty().mapNotNull { pregunta ->
+            respuestas[pregunta.id]?.let { elegida ->
+                RespuestaVisualizacion(
+                    pregunta = pregunta.texto,
+                    respuesta = pregunta.alternativas.getOrNull(elegida) ?: "Sin responder"
+                )
+            }
+        }
+    )
 }
 
 // --- COMPONENTES VISUALES ---
@@ -384,19 +417,4 @@ private fun FilaDetalle(etiqueta: String, valor: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
-
-
-private fun registrosEjemplo(): List<RegistroHistorial> {
-    val respuestasMock = listOf(
-        RespuestaVisualizacion("¿Con qué frecuencia estudias?", "Siempre"),
-        RespuestaVisualizacion("¿Tienes un lugar tranquilo para estudiar?", "A veces"),
-        RespuestaVisualizacion("¿Haces resúmenes de lo que lees?", "Nunca")
-    )
-
-    return listOf(
-        RegistroHistorial("1", "Estudiante EST-001", "5.º A", "24-10-2026", "Cuestionario de hábitos de estudio", EstadoAplicacion.REVISADA, respuestas = respuestasMock),
-        RegistroHistorial("2", "Estudiante EST-002", "6.º B", "22-10-2026", "Mini cuestionario de comprensión lectora (simulado)", EstadoAplicacion.FINALIZADA, respuestas = respuestasMock),
-        RegistroHistorial("3", "Estudiante EST-003", "7.º C", "18-10-2026", "Escala de clima escolar (simulada)", EstadoAplicacion.PENDIENTE, respuestas = respuestasMock)
-    )
 }

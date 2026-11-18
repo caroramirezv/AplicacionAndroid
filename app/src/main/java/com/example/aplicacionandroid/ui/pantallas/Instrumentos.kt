@@ -19,11 +19,15 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,6 +48,8 @@ private val iconosInstrumento = listOf(Icons.Default.Extension, Icons.Default.Vi
 
 @Composable
 fun Instrumentos(vm: ApplicationViewModel) {
+    val instrumentos by vm.instrumentos.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -54,7 +60,20 @@ fun Instrumentos(vm: ApplicationViewModel) {
     ) {
         TituloPantalla("Instrumentos")
 
-        vm.instrumentos.forEachIndexed { i, inst ->
+        if (instrumentos.isEmpty()) {
+            if (vm.cargando) {
+                CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                Text(
+                    vm.error ?: "No hay instrumentos disponibles.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextoSecundario
+                )
+                OutlinedButton(onClick = { vm.recargar() }) { Text("Reintentar") }
+            }
+        }
+
+        instrumentos.forEachIndexed { i, inst ->
             TarjetaInstrumento(
                 inst = inst,
                 icono = if (inst.asignable) iconosInstrumento[i % iconosInstrumento.size] else Icons.Default.Lock,

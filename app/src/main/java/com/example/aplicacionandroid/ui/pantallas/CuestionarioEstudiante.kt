@@ -143,6 +143,10 @@ fun CuestionarioEstudiante(
             }
         }
 
+        vm.error?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        }
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
                 onClick = { vm.anterior() },
@@ -156,12 +160,12 @@ fun CuestionarioEstudiante(
             if (ultima) {
                 Button(
                     onClick = { vm.finalizar(onFinalizado) },
-                    enabled = vm.completo,
+                    enabled = vm.completo && !vm.cargando,
                     shape = FormaControl,
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
-                ) { Text("Finalizar", fontWeight = FontWeight.SemiBold) }
+                ) { Text(if (vm.cargando) "Enviando..." else "Finalizar", fontWeight = FontWeight.SemiBold) }
             } else {
                 Button(
                     onClick = { vm.siguiente() },

@@ -1,45 +1,40 @@
 package com.example.aplicacionandroid.data.repository
 
-import com.example.aplicacionandroid.data.local.UsuarioDao
-import com.example.aplicacionandroid.data.local.UsuarioEntity
+import com.example.aplicacionandroid.data.remote.AuthLoginRequest
+import com.example.aplicacionandroid.data.remote.AuthResponse
+import com.example.aplicacionandroid.data.remote.Sesion
+import com.example.aplicacionandroid.data.remote.SupabaseApi
+import com.example.aplicacionandroid.data.remote.SupabaseClient
+import com.example.aplicacionandroid.model.PIE
+import retrofit2.HttpException
 
-class UsuarioRepository(private val dao: UsuarioDao) {
+class UsuarioRepository(private val api: SupabaseApi = SupabaseClient.api) {
 
-    private suspend fun asegurarCuentasDemo() {
-        val usuariosDemo = listOf(
-            UsuarioEntity(
-                correo = CORREO_DEMO_1,
-                contrasena = CLAVE_DEMO_1,
-                nombre = "Ana Soto PIE",
-                rol = ROL_PSICOLOGO
-            ),
-            UsuarioEntity(
-                correo = CORREO_DEMO_2,
-                contrasena = CLAVE_DEMO_2,
-                nombre = "Carlos Pérez PIE",
-                rol = ROL_PSICOLOGO
-            )
-        )
-
-        for (usuario in usuariosDemo) {
-            if (dao.buscarPorCorreo(usuario.correo) == null) {
-                dao.registrar(usuario)
+    suspend fun iniciarSesion(correo: String, clave: String): Result<PIE?> = llamar(api) {
+        val email = correo.trim().lowercase()
+        val auth = autenticar(email, clave)
+        if (auth == null) {
+            null
+        } else {
+            Sesion.guardar(auth.accessToken, auth.refreshToken)
+            val perfil = try {
+                auth.user?.id?.let { api.perfil("eq.$it", "nombre").firstOrNull() }
+            } catch (e: Exception) {
+                Sesion.cerrar()
+                throw e
             }
+            if (perfil == null) {
+                Sesion.cerrar()
+                throw SinPermisoException()
+            }
+            PIE(nombre = perfil.nombre, correo = email)
         }
     }
 
-    suspend fun iniciarSesion(correo: String, clave: String): UsuarioEntity? {
-        asegurarCuentasDemo()
-        return dao.login(correo.trim().lowercase(), clave)
-    }
-
-    companion object {
-        const val ROL_PSICOLOGO = "PSICOLOGO"
-
-        const val CORREO_DEMO_1 = "ana.soto@mpaz.cl"
-        const val CLAVE_DEMO_1 = "ana1234"
-
-        const val CORREO_DEMO_2 = "carlos.perez@mpaz.cl"
-        const val CLAVE_DEMO_2 = "carlos1234"
-    }
+    private suspend fun autenticar(email: String, clave: String): AuthResponse? =
+        try {
+            api.loginAuth("password", AuthLoginRequest(email, clave))
+        } catch (e: HttpException) {
+            if (e.code() == 400 || e.code() == 401 || e.code() == 422) null else throw e
+        }
 }

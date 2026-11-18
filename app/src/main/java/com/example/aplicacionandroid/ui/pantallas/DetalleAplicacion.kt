@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.aplicacionandroid.data.CatalogoInstrumentos
 import com.example.aplicacionandroid.data.repository.AplicacionRepository
 import com.example.aplicacionandroid.model.EstadoAplicacion
 import com.example.aplicacionandroid.model.Respuesta
@@ -54,17 +53,27 @@ import com.example.aplicacionandroid.viewModel.ApplicationViewModel
 fun DetalleAplicacion(id: Int, vm: ApplicationViewModel) {
     val contexto = LocalContext.current
     val lista by vm.aplicaciones.collectAsState()
+    val instrumentos by vm.instrumentos.collectAsState()
     val app = lista.firstOrNull { it.id == id }
     var observacion by remember(id) { mutableStateOf(vm.obtener(id)?.observacion ?: "") }
 
-    LaunchedEffect(id) { vm.registrarConsulta(id) }
+    LaunchedEffect(id) {
+        vm.recargarAplicaciones()
+        vm.registrarConsulta(id)
+    }
+    LaunchedEffect(vm.error) {
+        vm.error?.let {
+            Toast.makeText(contexto, it, Toast.LENGTH_LONG).show()
+            vm.limpiarError()
+        }
+    }
 
     if (app == null) {
         Text("La aplicación no existe.", Modifier.padding(16.dp))
         return
     }
 
-    val instrumento = CatalogoInstrumentos.buscar(app.instrumentoId)
+    val instrumento = instrumentos.firstOrNull { it.id == app.instrumentoId }
     val terminada = app.estado == EstadoAplicacion.FINALIZADA || app.estado == EstadoAplicacion.REVISADA
     val vencido = app.codigoActivo &&
         System.currentTimeMillis() - app.codigoGeneradoEn > AplicacionRepository.VIGENCIA_CODIGO_MS
@@ -181,8 +190,11 @@ fun DetalleAplicacion(id: Int, vm: ApplicationViewModel) {
             )
             Button(
                 onClick = {
-                    vm.guardarObservacion(app.id, observacion)
-                    Toast.makeText(contexto, "Observación guardada", Toast.LENGTH_SHORT).show()
+                    vm.guardarObservacion(app.id, observacion) { guardada ->
+                        if (guardada) {
+                            Toast.makeText(contexto, "Observación guardada", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 },
                 shape = FormaControl,
                 modifier = Modifier

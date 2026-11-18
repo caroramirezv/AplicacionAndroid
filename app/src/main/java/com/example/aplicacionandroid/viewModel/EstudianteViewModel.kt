@@ -6,11 +6,12 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.aplicacionandroid.data.CatalogoInstrumentos
+import androidx.lifecycle.viewModelScope
 import com.example.aplicacionandroid.data.repository.AplicacionRepository
 import com.example.aplicacionandroid.data.repository.ResultadoCodigo
-import com.example.aplicacionandroid.model.Aplicacion
+import com.example.aplicacionandroid.data.repository.mensajeDeError
 import com.example.aplicacionandroid.model.Instrumento
+import kotlinx.coroutines.launch
 
 class EstudianteViewModel : ViewModel() {
 
@@ -19,6 +20,8 @@ class EstudianteViewModel : ViewModel() {
     var codigo by mutableStateOf("")
     var error by mutableStateOf<String?>(null)
 
+    var cargando by mutableStateOf(false)
+        private set
     var instrumento by mutableStateOf<Instrumento?>(null)
         private set
     var aplicacionId by mutableStateOf<Int?>(null)
@@ -27,44 +30,55 @@ class EstudianteViewModel : ViewModel() {
         private set
     val respuestas = mutableStateMapOf<Int, Int>()
 
-    private var actor = "Estudiante"
+    private var codigoActivo = ""
 
     fun ingresar(onOk: () -> Unit) {
+        if (cargando) return
         if (codigo.length < AplicacionRepository.LONGITUD_CODIGO) {
             error = "Ingresa el código de ${AplicacionRepository.LONGITUD_CODIGO} caracteres"
             return
         }
-        when (val resultado = repo.validarCodigo(codigo)) {
-            is ResultadoCodigo.Valido -> {
-                cargar(resultado.aplicacion)
-                error = null
-                onOk()
-            }
-            ResultadoCodigo.NoExiste -> error = "Código no válido"
-            ResultadoCodigo.Expirado -> error = "El código venció. Pide uno nuevo al psicólogo."
-            ResultadoCodigo.YaUsado -> error = "Este código ya fue utilizado."
+        viewModelScope.launch {
+            cargando = true
+            val resultado = repo.validarCodigo(codigo)
+            cargando = false
+            resultado
+                .onSuccess { validacion ->
+                    when (validacion) {
+                        is ResultadoCodigo.Valido -> {
+                            cargar(validacion)
+                            error = null
+                            onOk()
+                        }
+                        ResultadoCodigo.NoExiste -> error = "Código no válido"
+                        ResultadoCodigo.Expirado -> error = "El código venció. Pide uno nuevo al psicólogo."
+                        ResultadoCodigo.YaUsado -> error = "Este código ya fue utilizado."
+                    }
+                }
+                .onFailure { error = mensajeDeError(it) }
         }
     }
 
-    private fun cargar(app: Aplicacion) {
-        val inst = CatalogoInstrumentos.buscar(app.instrumentoId)
+    private fun cargar(validacion: ResultadoCodigo.Valido) {
+        val inst = validacion.instrumento
         instrumento = inst
-        aplicacionId = app.id
-        actor = "Estudiante ${app.estudiante.idEstudiante}"
+        aplicacionId = validacion.aplicacion.id
+        codigoActivo = codigo.trim().uppercase()
         respuestas.clear()
-        respuestas.putAll(app.respuestas)
-        val primeraSinResponder = inst?.preguntas?.indexOfFirst { it.id !in respuestas } ?: -1
+        respuestas.putAll(validacion.aplicacion.respuestas)
+        val primeraSinResponder = inst.preguntas.indexOfFirst { it.id !in respuestas }
         indice = if (primeraSinResponder >= 0) primeraSinResponder else 0
     }
 
     fun comenzar() {
-        aplicacionId?.let { repo.iniciar(it, actor) }
+        if (codigoActivo.isEmpty()) return
+        viewModelScope.launch { repo.iniciar(codigoActivo) }
     }
 
     fun seleccionar(preguntaId: Int, alternativa: Int) {
-        val id = aplicacionId ?: return
+        if (codigoActivo.isEmpty()) return
         respuestas[preguntaId] = alternativa
-        repo.guardarRespuesta(id, preguntaId, alternativa)
+        viewModelScope.launch { repo.guardarRespuesta(codigoActivo, preguntaId, alternativa) }
     }
 
     fun siguiente() {
@@ -80,18 +94,25 @@ class EstudianteViewModel : ViewModel() {
         get() = instrumento?.preguntas?.all { it.id in respuestas } == true
 
     fun finalizar(onOk: () -> Unit) {
-        val inst = instrumento ?: return
-        val id = aplicacionId ?: return
-        if (!completo) return
-        repo.finalizar(id, inst.calcularPuntaje(respuestas.toMap()), actor)
-        onOk()
+        if (cargando || !completo || codigoActivo.isEmpty()) return
+        viewModelScope.launch {
+            cargando = true
+            error = null
+            val resultado = repo.finalizar(codigoActivo, respuestas.toMap())
+            cargando = false
+            resultado
+                .onSuccess { onOk() }
+                .onFailure { error = mensajeDeError(it) }
+        }
     }
 
     fun reiniciar() {
         codigo = ""
         error = null
+        cargando = false
         instrumento = null
         aplicacionId = null
+        codigoActivo = ""
         indice = 0
         respuestas.clear()
     }
